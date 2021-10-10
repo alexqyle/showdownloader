@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>showdownloader</Name>
+  <Repository>shadow999/showdownloader:latest</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project/>
+  <Overview/>
+  <Category/>
+  <WebUI/>
+  <TemplateURL/>
+  <Icon>http://vicworldwide.com/img/download.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Description/>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish/>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir></HostDir>
+      <ContainerDir>/config/config.yaml</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+    <Volume>
+      <HostDir></HostDir>
+      <ContainerDir>/config/tracker.yaml</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <Environment/>
+  <Labels/>
+  <Config Name="Config File" Target="/config/config.yaml" Default="" Mode="rw" Description="Path - Config File" Type="Path" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="Tracker File" Target="/config/tracker.yaml" Default="" Mode="rw" Description="Path - Tracker File" Type="Path" Display="always" Required="false" Mask="false"></Config>
+</Container>
