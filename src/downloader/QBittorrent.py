@@ -26,5 +26,5 @@ class QBittorrent(Downloader):
             logger.info(f"Success add download job for link: {link}")
         else:
             message = f"Failed to add download job for link: {link}"
-            logger.warn(message)
+            logger.warning(message)
             raise RuntimeError(message)

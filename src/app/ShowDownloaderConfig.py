@@ -17,6 +17,7 @@ class ShowDownloaderConfig(object):
     def __parse_config(self, config_file: IO[Any], tracker: dict[str, int]) -> None:
         config = yaml.safe_load(config_file)
         site_dict: dict[str, ShowSite] = dict()
+        site_config = config['show_site_config']
         downloader_dict: dict[str, Downloader] = dict()
         downloader_config = config['downloader_config']
         for job_yaml in config['download_jobs']:
@@ -27,7 +28,7 @@ class ShowDownloaderConfig(object):
             if site_name in site_dict:
                 site = site_dict[site_name]
             else:
-                site = self.__get_site(site_name)
+                site = self.__get_site(site_name, site_config)
                 site_dict[site_name] = site
             if downloader_name in downloader_dict:
                 downloader = downloader_dict[downloader_name]
@@ -37,9 +38,10 @@ class ShowDownloaderConfig(object):
             episode = tracker.get(name, 1)
             self.download_jobs.append(DownloadJob(name, site, downloader, search_string, episode))
 
-    def __get_site(self, site_name: str) -> ShowSite:
+    def __get_site(self, site_name: str, site_config) -> ShowSite:
         if (site_name.lower() == 'acgnx'):
-            return Acgnx()
+            search_delay_second = site_config['acgnx']['search_delay_second']
+            return Acgnx(search_delay_second)
         else:
             message = f"Unknown site: {site_name}"
             raise RuntimeError(message)

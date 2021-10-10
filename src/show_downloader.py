@@ -20,17 +20,21 @@ def main():
     with args.config_file.open('r', encoding='utf-8') as config_file:
         config = ShowDownloaderConfig(config_file, tracker)
     for download_job in config.download_jobs:
+        show_info = f"show '{download_job.name}' with search string '{download_job.search_string}' for episode '{download_job.episode}'"
         try:
-            link = download_job.site.get_download_link(download_job.search_string, download_job.episode)
+            try:
+                link = download_job.site.get_download_link(download_job.search_string, download_job.episode)
+            except Exception as error:
+                logger.error(f"Unable to get download link for show: '{download_job.name}'. Error: {error}")
+                link = None
             if link:
                 download_job.downloader.download(link)
                 logger.info(f"Success create download job for show: '{download_job.name}'")
                 tracker[download_job.name] = download_job.episode + 1
             else:
-                logger.warn(f"There is no search result for show '{download_job.name}' with search string '{download_job.search_string}'")
+                logger.warning(f"There is no search result for {show_info}")
         except Exception as error:
-            logger.error(f"Unable to download show '{download_job.name}' with search string '{download_job.search_string}' " + 
-                f"for episode '{download_job.episode}'. Error: {error}")
+            logger.error(f"Unable to download {show_info}. Error: {error}")
             traceback.print_exc()
             continue
     with args.tracker_file.open('w', encoding='utf-8') as tracker_file:
