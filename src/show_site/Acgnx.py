@@ -32,23 +32,40 @@ class Acgnx(ShowSite):
         logger.info(f"Retrieved cookie: {cookie}")
         return cookie
         
-    @retry((Exception), tries=3)
+    @retry((RuntimeError), tries=3)
     def get_download_link(self, search_string: str, episode: int = None) -> str:
         real_search_string = search_string.format(episode=episode) if episode else search_string
         logger.info(f"Real search string: '{real_search_string}'")
         payload = {'keyword': real_search_string}
         logger.info(f"Delay searching for {self.search_delay_second} seconds")
         time.sleep(self.search_delay_second)
-        req = requests.get(self.search_url, headers=default_headers, cookies=self.cookie, params=payload)
-        html = req.text
-        pq = PyQuery(html)
+        pq, html = self.__send_search_request(default_headers, self.cookie, payload)
+        is_require_cookie = pq('body').eq(0).attr('onload')
+        if is_require_cookie:
+            logger.warning(f"Getting new cookie")
+            self.cookie = self.__get_cookie()
+            time.sleep(self.search_delay_second)
+            pq, html = self.__send_search_request(default_headers, self.cookie, payload)
         link = pq('table#listTable a#magnet').eq(0).attr('href')
         if link:
             logger.info(f"Success get download link for '{real_search_string}': {link}")
         else:
-            message = f"Unable to get download link with search string: '{real_search_string}'"
-            logger.warning(message)
-            no_result_text = pq('table#listTable tbody#data_list tr.text_center td').eq(0).text()
-            if not no_result_text:
-                raise RuntimeError(message)
+            if pq('div#recaptcha-widget').length:
+                message = f"ReCaptcha needed for '{real_search_string}'"
+                logger.error(message)
+                raise RuntimeWarning(message)
+            else: 
+                message = f"Unable to get download link with search string: '{real_search_string}'"
+                logger.warning(message)
+                no_result_text = pq('table#listTable tbody#data_list tr.text_center td').eq(0).text()
+                if not no_result_text:
+                    raise RuntimeError(message)
         return link
+
+    def __send_search_request(self, headers, cookies, payload) -> tuple[PyQuery, str]:
+        try:
+            req = requests.get(self.search_url, headers=headers, cookies=cookies, params=payload)
+            html = req.text
+            return PyQuery(html), html
+        except Exception as error:
+            raise RuntimeError(error)
