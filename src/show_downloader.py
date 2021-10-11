@@ -23,9 +23,10 @@ def main():
         show_info = f"show '{download_job.name}' with search string '{download_job.search_string}' for episode '{download_job.episode}'"
         try:
             try:
-                link = download_job.site.get_download_link(download_job.search_string, download_job.episode)
+                link = download_job.site.get_download_link(download_job.search_string, download_job.episode_search_string, download_job.episode)
             except Exception as error:
                 logger.error(f"Unable to get download link for show: '{download_job.name}'. Error: {error}")
+                traceback.print_exc()
                 link = None
             if link:
                 download_job.downloader.download(link)

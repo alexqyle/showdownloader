@@ -1,5 +1,11 @@
 FROM python:3.9-slim
 
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y install --no-install-recommends curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/app
 
 COPY requirements.txt ./

@@ -25,6 +25,7 @@ class ShowDownloaderConfig(object):
             site_name = job_yaml['site']
             downloader_name = job_yaml['downloader']
             search_string = job_yaml['search_string']
+            episode_search_string = job_yaml['episode_search_string']
             if site_name in site_dict:
                 site = site_dict[site_name]
             else:
@@ -36,7 +37,7 @@ class ShowDownloaderConfig(object):
                 downloader = self.__get_downloader(downloader_name, downloader_config)
                 downloader_dict[downloader_name] = downloader
             episode = tracker.get(name, 1)
-            self.download_jobs.append(DownloadJob(name, site, downloader, search_string, episode))
+            self.download_jobs.append(DownloadJob(name, site, downloader, search_string, episode_search_string, episode))
 
     def __get_site(self, site_name: str, site_config) -> ShowSite:
         if (site_name.lower() == 'acgnx'):
