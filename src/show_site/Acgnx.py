@@ -23,8 +23,10 @@ class Acgnx(ShowSite):
     def __get_cookie(self) -> dict[str, str]:
         req = requests.get(self.search_url, headers=default_headers, params={'keyword': 'dummy'})
         html = req.text
-        split_key_match = re.search(r'\.split\(\'(.+)\'\)', html)
+        logger.info(html)
+        split_key_match = re.search(r'\.split\(\'(.+?)\'\)', html)
         split_key = split_key_match.group(1)
+        logger.info(split_key)
         content_match = re.search(f"\'({split_key}.+?)\'\.split", html)
         content = content_match.group(1).split(split_key)
         cookie = dict()
