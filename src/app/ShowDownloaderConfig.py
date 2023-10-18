@@ -10,11 +10,11 @@ from show_site.ShowSite import ShowSite
 logger = logging.getLogger(__name__)
 
 class ShowDownloaderConfig(object):
-    def __init__(self, config_file: IO[Any], tracker: dict[str, int]):
+    def __init__(self, config_file: IO[Any], tracker: dict[str, Any]):
         self.download_jobs: list[DownloadJob] = list()
         self.__parse_config(config_file, tracker)
 
-    def __parse_config(self, config_file: IO[Any], tracker: dict[str, int]) -> None:
+    def __parse_config(self, config_file: IO[Any], tracker: dict[str, Any]) -> None:
         config = yaml.safe_load(config_file)
         site_dict: dict[str, ShowSite] = dict()
         site_config = config['show_site_config']
@@ -36,8 +36,13 @@ class ShowDownloaderConfig(object):
             else:
                 downloader = self.__get_downloader(downloader_name, downloader_config)
                 downloader_dict[downloader_name] = downloader
-            episode = tracker.get(name, 1)
-            self.download_jobs.append(DownloadJob(name, site, downloader, search_string, episode_search_string, episode))
+            if name in tracker:
+                episode = tracker.get(name).get('episode', 1)
+                next_check_time = tracker.get(name).get('next_check_time', 0)
+            else:
+                episode = 1
+                next_check_time = 0
+            self.download_jobs.append(DownloadJob(name, site, downloader, search_string, episode_search_string, episode, next_check_time))
 
     def __get_site(self, site_name: str, site_config) -> ShowSite:
         if (site_name.lower() == 'acgnx'):

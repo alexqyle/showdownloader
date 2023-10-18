@@ -11,10 +11,12 @@ class DownloadJob(object):
                  downloader: Downloader, 
                  search_string: str, 
                  episode_search_string: str, 
-                 episode: int):
+                 episode: int,
+                 next_check_time: int):
         self.name = name
         self.site = site
         self.downloader = downloader
         self.search_string = search_string
         self.episode_search_string = episode_search_string
         self.episode = episode
+        self.next_check_time = next_check_time

@@ -1,6 +1,8 @@
 import argparse
 import logging
 import pathlib
+import random
+import time
 import traceback
 import yaml
 from app.ShowDownloaderConfig import ShowDownloaderConfig
@@ -21,25 +23,30 @@ def main():
         tracker = yaml.safe_load(tracker_file)
     with args.config_file.open('r', encoding='utf-8') as config_file:
         config = ShowDownloaderConfig(config_file, tracker)
+    now = int(time.time())
     for download_job in config.download_jobs:
-        show_info = f"show '{download_job.name}' with search string '{download_job.search_string}' for episode '{download_job.episode}'"
-        try:
+        if download_job.next_check_time > now:
+            logger.info(f"Skip show '{download_job.name}' due to next check time '{download_job.next_check_time}' not reached")
+        else:
+            show_info = f"show '{download_job.name}' with search string '{download_job.search_string}' for episode '{download_job.episode}'"
             try:
-                link = download_job.site.get_download_link(download_job.search_string, download_job.episode_search_string, download_job.episode)
+                try:
+                    link = download_job.site.get_download_link(download_job.search_string, download_job.episode_search_string, download_job.episode)
+                except Exception as error:
+                    logger.error(f"Unable to get download link for show: '{download_job.name}'. Error: {error}")
+                    traceback.print_exc()
+                    link = None
+                if link:
+                    download_job.downloader.download(link)
+                    logger.info(f"Success create download job for show: '{download_job.name}'")
+                    tracker[download_job.name]['episode'] = download_job.episode = download_job.episode + 1
+                else:
+                    logger.warning(f"There is no search result for {show_info}")
+                tracker[download_job.name]['next_check_time'] = now + 24 * 60 * 60 + 30 * 60 * int(random.random() * 4 - 2)
             except Exception as error:
-                logger.error(f"Unable to get download link for show: '{download_job.name}'. Error: {error}")
+                logger.error(f"Unable to download {show_info}. Error: {error}")
                 traceback.print_exc()
-                link = None
-            if link:
-                download_job.downloader.download(link)
-                logger.info(f"Success create download job for show: '{download_job.name}'")
-                tracker[download_job.name] = download_job.episode + 1
-            else:
-                logger.warning(f"There is no search result for {show_info}")
-        except Exception as error:
-            logger.error(f"Unable to download {show_info}. Error: {error}")
-            traceback.print_exc()
-            continue
+                continue
     with args.tracker_file.open('w', encoding='utf-8') as tracker_file:
         yaml.safe_dump(tracker, tracker_file, encoding='utf-8', allow_unicode=True, line_break="\n")
     with args.tracker_file.open('r', encoding='utf-8') as tracker_file:
