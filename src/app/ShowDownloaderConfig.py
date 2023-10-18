@@ -42,7 +42,8 @@ class ShowDownloaderConfig(object):
     def __get_site(self, site_name: str, site_config) -> ShowSite:
         if (site_name.lower() == 'acgnx'):
             search_delay_second = site_config['acgnx']['search_delay_second']
-            return Acgnx(search_delay_second)
+            cf_clearance_cookie = site_config['acgnx']['cf_clearance_cookie']
+            return Acgnx(search_delay_second, cf_clearance_cookie)
         else:
             message = f"Unknown site: {site_name}"
             raise RuntimeError(message)

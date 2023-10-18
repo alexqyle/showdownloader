@@ -9,19 +9,25 @@ from show_site.ShowSite import ShowSite
 logger = logging.getLogger(__name__)
 
 default_headers: dict[str, str] = {
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
 }
 
 class Acgnx(ShowSite):
-    def __init__(self, search_delay_second: int):
+    def __init__(self, search_delay_second, cf_clearance_cookie: int):
         super().__init__()
         self.search_url = 'https://share.acgnx.se/search.php'
         self.search_delay_second = search_delay_second
+        self.cf_clearance_cookie = cf_clearance_cookie
+        self.default_cookie: dict[str, str] = {
+            'cf_clearance': self.cf_clearance_cookie
+        }
         self.cookie = self.__get_cookie()
 
     @retry((Exception), tries=5, delay=1)
     def __get_cookie(self) -> dict[str, str]:
-        req = requests.get(self.search_url, headers=default_headers, params={'keyword': 'dummy'})
+        cookie = dict()
+        cookie.update(self.default_cookie)
+        req = requests.get(self.search_url, headers=default_headers, cookies=cookie, params={'keyword': 'dummy'})
         html = req.text
         logger.info(html)
         split_key_match = re.search(r'\.split\(\'(.+?)\'\)', html)
@@ -29,7 +35,9 @@ class Acgnx(ShowSite):
         logger.info(split_key)
         content_match = re.search(f"\'({split_key}.+?)\'\.split", html)
         content = content_match.group(1).split(split_key)
+        logger.info(content)
         cookie = dict()
+        cookie.update(self.default_cookie)
         cookie[content[36]] = content[29]
         logger.info(f"Retrieved cookie: {cookie}")
         return cookie
@@ -46,7 +54,7 @@ class Acgnx(ShowSite):
             logger.warning(f"Getting new cookie")
             self.cookie = self.__get_cookie()
             time.sleep(self.search_delay_second)
-            pq, html = self.__send_search_request(default_headers, self.cookie, payload)
+        pq, html = self.__send_search_request(default_headers, self.cookie, payload)
         if pq('div#recaptcha-widget').length:
             message = f"ReCaptcha needed for '{search_string}'"
             logger.error(message)
