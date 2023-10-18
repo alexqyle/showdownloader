@@ -27,38 +27,41 @@ class Acgnx(ShowSite):
     def __get_cookie(self) -> dict[str, str]:
         cookie = dict()
         cookie.update(self.default_cookie)
+        logger.info(f"Default cookie: {cookie}")
         req = requests.get(self.search_url, headers=default_headers, cookies=cookie, params={'keyword': 'dummy'})
         html = req.text
         logger.info(html)
+        cookie, _ = self.__update_cookie(cookie, html)
+        return cookie
+    
+    def __update_cookie(self, cookie: dict[str, str], html: str) -> (dict[str, str], bool):
         split_key_match = re.search(r'\.split\(\'(.+?)\'\)', html)
+        if split_key_match is None:
+            return cookie, False
         split_key = split_key_match.group(1)
         logger.info(split_key)
         content_match = re.search(f"\'({split_key}.+?)\'\.split", html)
         content = content_match.group(1).split(split_key)
         logger.info(content)
-        cookie = dict()
-        cookie.update(self.default_cookie)
-        cookie[content[36]] = content[29]
-        logger.info(f"Retrieved cookie: {cookie}")
-        return cookie
+        updated_cookie = dict()
+        updated_cookie.update(cookie)
+        updated_cookie[content[36]] = content[29]
+        logger.info(f"Retrieved cookie: {updated_cookie}")
+        return updated_cookie, True
         
     @retry((RuntimeError), tries=3)
     def get_download_link(self, search_string: str, episode_search_string: str, episode: int) -> str:
         logger.info(f"Search string: '{search_string}'")
         payload = {'keyword': search_string}
         logger.info(f"Delay searching for {self.search_delay_second} seconds")
-        time.sleep(self.search_delay_second)
+        time.sleep(self.search_delay_second / 2)
         pq, html = self.__send_search_request(default_headers, self.cookie, payload)
-        is_require_cookie = pq('body').eq(0).attr('onload')
-        if is_require_cookie:
-            logger.warning(f"Getting new cookie")
-            self.cookie = self.__get_cookie()
-            time.sleep(self.search_delay_second)
-        pq, html = self.__send_search_request(default_headers, self.cookie, payload)
-        if pq('div#recaptcha-widget').length:
-            message = f"ReCaptcha needed for '{search_string}'"
-            logger.error(message)
-            raise RuntimeWarning(message)
+        logger.debug(html)
+        self.cookie, updated = self.__update_cookie(self.cookie, html)
+        time.sleep(self.search_delay_second / 2)
+        if updated:
+            pq, html = self.__send_search_request(default_headers, self.cookie, payload)
+            logger.debug(html)
         return self.__get_download_link(pq, episode_search_string.format(episode=episode))
 
     def __get_download_link(self, pq: PyQuery, episode_search_string: str) -> str:

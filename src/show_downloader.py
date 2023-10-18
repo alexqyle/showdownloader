@@ -7,14 +7,16 @@ from app.ShowDownloaderConfig import ShowDownloaderConfig
 
 def __parse_args():
     parser = argparse.ArgumentParser(description='Show Downloader')
+    parser.add_argument('--log', dest='log_level', type=str, nargs='?', default='INFO', help='Log level')
     parser.add_argument('--config', dest='config_file', type=pathlib.Path, required=True, help='Config file to be used')
     parser.add_argument('--tracker', dest='tracker_file', type=pathlib.Path, required=True, help='File to keep track of episodes')
     return parser.parse_args()
 
 def main():
+    args = __parse_args()
+    logging.root.setLevel(args.log_level)
     logger = logging.getLogger(__name__)
 
-    args = __parse_args()
     with args.tracker_file.open('r', encoding='utf-8') as tracker_file:
         tracker = yaml.safe_load(tracker_file)
     with args.config_file.open('r', encoding='utf-8') as config_file:
