@@ -23,7 +23,7 @@ class Acgnx(ShowSite):
         }
         self.cookie = self.__get_cookie()
 
-    @retry((Exception), tries=5, delay=1)
+    @retry((Exception), tries=2, delay=1)
     def __get_cookie(self) -> dict[str, str]:
         cookie = dict()
         cookie.update(self.default_cookie)
@@ -49,7 +49,7 @@ class Acgnx(ShowSite):
         logger.info(f"Retrieved cookie: {updated_cookie}")
         return updated_cookie, True
         
-    @retry((RuntimeError), tries=3)
+    @retry((RuntimeError), tries=2)
     def get_download_link(self, search_string: str, episode_search_string: str, episode: int) -> str:
         logger.info(f"Search string: '{search_string}'")
         payload = {'keyword': search_string}
@@ -62,6 +62,11 @@ class Acgnx(ShowSite):
         if updated:
             pq, html = self.__send_search_request(default_headers, self.cookie, payload)
             logger.debug(html)
+        html_title = pq('title').eq(0).text()
+        if search_string not in html_title:
+            message = f"unable to search for '{search_string}'"
+            logger.error(message)
+            raise RuntimeError(message)
         return self.__get_download_link(pq, episode_search_string.format(episode=episode))
 
     def __get_download_link(self, pq: PyQuery, episode_search_string: str) -> str:
@@ -78,7 +83,7 @@ class Acgnx(ShowSite):
                 return link
         return None
 
-    def __send_search_request(self, headers, cookies, payload) -> tuple[PyQuery, str]:
+    def __send_search_request(self, headers, cookies, payload) -> (PyQuery, str):
         try:
             req = requests.get(self.search_url, headers=headers, cookies=cookies, params=payload)
             html = req.text

@@ -35,7 +35,7 @@ def main():
                 except Exception as error:
                     logger.error(f"Unable to get download link for show: '{download_job.name}'. Error: {error}")
                     traceback.print_exc()
-                    link = None
+                    raise error
                 if link:
                     download_job.downloader.download(link)
                     logger.info(f"Success create download job for show: '{download_job.name}'")
