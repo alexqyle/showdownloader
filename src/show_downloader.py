@@ -24,10 +24,15 @@ def main():
     with args.config_file.open('r', encoding='utf-8') as config_file:
         config = ShowDownloaderConfig(config_file, tracker)
     now = int(time.time())
+    scan_count = 0
     for download_job in config.download_jobs:
+        if scan_count >= config.max_scan_count:
+            logger.info(f"Reach max scan count: {scan_count}. Exit now.")
+            break
         if download_job.next_check_time > now:
             logger.info(f"Skip show '{download_job.name}' due to next check time '{download_job.next_check_time}' not reached")
         else:
+            scan_count = scan_count + 1
             show_info = f"show '{download_job.name}' with search string '{download_job.search_string}' for episode '{download_job.episode}'"
             try:
                 try:
@@ -42,7 +47,7 @@ def main():
                     tracker[download_job.name]['episode'] = download_job.episode = download_job.episode + 1
                 else:
                     logger.warning(f"There is no search result for {show_info}")
-                tracker[download_job.name]['next_check_time'] = now + 24 * 60 * 60 + 30 * 60 * int(random.random() * 4 - 2)
+                tracker[download_job.name]['next_check_time'] = now + config.check_interval_second + int(random.random() * config.check_jitter_second - (config.check_jitter_second / 2))
             except Exception as error:
                 logger.error(f"Unable to download {show_info}. Error: {error}")
                 traceback.print_exc()

@@ -16,6 +16,9 @@ class ShowDownloaderConfig(object):
 
     def __parse_config(self, config_file: IO[Any], tracker: dict[str, Any]) -> None:
         config = yaml.safe_load(config_file)
+        self.max_scan_count = config['max_scan_count']
+        self.check_interval_second = config['check_interval_second']
+        self.check_jitter_second = config['check_jitter_second']
         site_dict: dict[str, ShowSite] = dict()
         site_config = config['show_site_config']
         downloader_dict: dict[str, Downloader] = dict()
@@ -47,8 +50,9 @@ class ShowDownloaderConfig(object):
     def __get_site(self, site_name: str, site_config) -> ShowSite:
         if (site_name.lower() == 'acgnx'):
             search_delay_second = site_config['acgnx']['search_delay_second']
+            user_agent = site_config['acgnx']['user_agent']
             cf_clearance_cookie = site_config['acgnx']['cf_clearance_cookie']
-            return Acgnx(search_delay_second, cf_clearance_cookie)
+            return Acgnx(search_delay_second, user_agent, cf_clearance_cookie)
         else:
             message = f"Unknown site: {site_name}"
             raise RuntimeError(message)

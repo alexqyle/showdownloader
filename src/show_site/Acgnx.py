@@ -8,16 +8,15 @@ from show_site.ShowSite import ShowSite
 
 logger = logging.getLogger(__name__)
 
-default_headers: dict[str, str] = {
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36'
-}
-
 class Acgnx(ShowSite):
-    def __init__(self, search_delay_second, cf_clearance_cookie: int):
+    def __init__(self, search_delay_second: int, user_agent: str, cf_clearance_cookie: int):
         super().__init__()
         self.search_url = 'https://share.acgnx.se/search.php'
         self.search_delay_second = search_delay_second
         self.cf_clearance_cookie = cf_clearance_cookie
+        self.default_headers: dict[str, str] = {
+            'user-agent': user_agent
+        }
         self.default_cookie: dict[str, str] = {
             'cf_clearance': self.cf_clearance_cookie
         }
@@ -28,7 +27,7 @@ class Acgnx(ShowSite):
         cookie = dict()
         cookie.update(self.default_cookie)
         logger.info(f"Default cookie: {cookie}")
-        req = requests.get(self.search_url, headers=default_headers, cookies=cookie, params={'keyword': 'dummy'})
+        req = requests.get(self.search_url, headers=self.default_headers, cookies=cookie, params={'keyword': 'dummy'})
         html = req.text
         logger.info(html)
         cookie, _ = self.__update_cookie(cookie, html)
@@ -55,12 +54,12 @@ class Acgnx(ShowSite):
         payload = {'keyword': search_string}
         logger.info(f"Delay searching for {self.search_delay_second} seconds")
         time.sleep(self.search_delay_second / 2)
-        pq, html = self.__send_search_request(default_headers, self.cookie, payload)
+        pq, html = self.__send_search_request(self.default_headers, self.cookie, payload)
         logger.debug(html)
         self.cookie, updated = self.__update_cookie(self.cookie, html)
         time.sleep(self.search_delay_second / 2)
         if updated:
-            pq, html = self.__send_search_request(default_headers, self.cookie, payload)
+            pq, html = self.__send_search_request(self.default_headers, self.cookie, payload)
             logger.debug(html)
         html_title = pq('title').eq(0).text()
         if search_string not in html_title:
