@@ -44,9 +44,12 @@ def main():
                 if link:
                     download_job.downloader.download(link)
                     logger.info(f"Success create download job for show: '{download_job.name}'")
-                    tracker[download_job.name]['episode'] = download_job.episode = download_job.episode + 1
+                    download_job.episode = download_job.episode + 1
                 else:
                     logger.warning(f"There is no search result for {show_info}")
+                if download_job.name not in tracker:
+                    tracker[download_job.name] = {}
+                tracker[download_job.name]['episode'] = download_job.episode
                 tracker[download_job.name]['next_check_time'] = now + config.check_interval_second + int(random.random() * config.check_jitter_second - (config.check_jitter_second / 2))
             except Exception as error:
                 logger.error(f"Unable to download {show_info}. Error: {error}")
