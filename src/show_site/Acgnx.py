@@ -11,7 +11,7 @@ from DrissionPage import ChromiumOptions
 logger = logging.getLogger(__name__)
 
 class Acgnx(ShowSite):
-    def __init__(self, search_delay_second: int, user_agent: str):
+    def __init__(self, search_delay_second: int, user_agent: str, captcha_selector: str):
         super().__init__()
         self.search_url = 'https://share.acgnx.se/search.php'
         self.search_delay_second = search_delay_second
@@ -19,6 +19,7 @@ class Acgnx(ShowSite):
             'user-agent': user_agent
         }
         self.user_agent = user_agent
+        self.captcha_selector = captcha_selector
 
     @retry((Exception), tries=2, delay=1)
     def __get_cf_cookie(self) -> dict[str, str]:
@@ -32,7 +33,7 @@ class Acgnx(ShowSite):
         for f in page.get_frames():
             iframe_src = f.attrs['src']
             if (re.match("https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/[bg]/turnstile", iframe_src)):
-                ele = f.ele('.ctp-label')
+                ele = f.ele(self.captcha_selector)
                 ele.click(timeout=10, by_js=None)
                 logger.info('clicked cloudflare verify button')
 
