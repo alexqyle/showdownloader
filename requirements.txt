@@ -2,4 +2,4 @@ pyquery
 pyyaml
 requests
 retry 
-DrissionPage==4.0.0b14
+DrissionPage

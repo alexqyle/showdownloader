@@ -27,28 +27,21 @@ class Acgnx(ShowSite):
         co.set_argument('--headless')
         co.set_argument('--no-sandbox')
         co.set_argument('--user-agent', self.user_agent)
-        page = WebPage(driver_or_options=co)
+        page = WebPage(chromium_options=co)
         page.get(self.search_url)
 
-        for f in page.get_frames():
-            iframe_src = f.attrs['src']
-            if (re.match("https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/[bg]/turnstile", iframe_src)):
-                ele = f.ele(self.captcha_selector)
-                ele.click(timeout=10, by_js=None)
-                logger.info('clicked cloudflare verify button')
-
-        bypassed = False
-        for _ in range(10):
-            logger.debug(page.html)
-            if 'Project AcgnX' in page.title:
-                bypassed = True
-                break
-            time.sleep(1)
+        if not self.__is_cf_bypassed(page, 5): 
+            wrapper = page.ele(".cf-turnstile-wrapper")
+            shadow_root = wrapper.shadow_root
+            iframe = shadow_root.ele("tag=iframe", timeout=15)
+            ele = iframe.ele(self.captcha_selector)
+            ele.click(timeout=10, by_js=None)
+            logger.info('clicked cloudflare verify button')
         
-        if not bypassed:
+        if not self.__is_cf_bypassed(page, 10):
             raise RuntimeError('unable to bypass cloudflare')
 
-        for cookie in page.get_cookies():
+        for cookie in page.cookies():
             if cookie['name'] == 'cf_clearance':
                 cf_clearance_cookie = cookie['value']
                 break
@@ -57,6 +50,16 @@ class Acgnx(ShowSite):
         return {
             'cf_clearance': cf_clearance_cookie
         }
+    
+    def __is_cf_bypassed(self, page: WebPage, retries: int) -> bool:
+        bypassed = False
+        for _ in range(retries):
+            logger.debug(page.html)
+            if 'Project AcgnX' in page.title:
+                bypassed = True
+                break
+            time.sleep(1)
+        return bypassed
     
     @retry((Exception), tries=2, delay=1)
     def __get_cookie(self) -> dict[str, str]:
