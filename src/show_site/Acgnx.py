@@ -24,7 +24,7 @@ class Acgnx(ShowSite):
     @retry((Exception), tries=2, delay=1)
     def __get_cf_cookie(self) -> dict[str, str]:
         co = ChromiumOptions()
-        co.set_argument('--headless')
+        # co.set_argument('--headless')
         co.set_argument('--no-sandbox')
         co.set_argument('--user-agent', self.user_agent)
         page = WebPage(chromium_options=co)
@@ -34,7 +34,8 @@ class Acgnx(ShowSite):
             wrapper = page.ele(".cf-turnstile-wrapper")
             shadow_root = wrapper.shadow_root
             iframe = shadow_root.ele("tag=iframe", timeout=15)
-            ele = iframe.ele(self.captcha_selector)
+            iframe_body = iframe.ele('tag:body', timeout=15).shadow_root
+            ele = iframe_body.ele(self.captcha_selector, timeout=15)
             ele.click(timeout=10, by_js=None)
             logger.info('clicked cloudflare verify button')
         
