@@ -24,7 +24,7 @@ class Acgnx(ShowSite):
     @retry((Exception), tries=2, delay=1)
     def __get_cf_cookie(self) -> dict[str, str]:
         co = ChromiumOptions()
-        # co.set_argument('--headless')
+        co.set_argument('--headless')
         co.set_argument('--no-sandbox')
         co.set_argument('--user-agent', self.user_agent)
         page = WebPage(chromium_options=co)
