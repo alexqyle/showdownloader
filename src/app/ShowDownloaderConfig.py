@@ -51,8 +51,11 @@ class ShowDownloaderConfig(object):
         if (site_name.lower() == 'acgnx'):
             search_delay_second = site_config['acgnx']['search_delay_second']
             user_agent = site_config['acgnx']['user_agent']
+            iframe_finder = site_config['acgnx']['iframe_finder']
+            iframe_selector = site_config['acgnx']['iframe_selector']
+            captcha_finder = site_config['acgnx']['captcha_finder']
             captcha_selector = site_config['acgnx']['captcha_selector']
-            return Acgnx(search_delay_second, user_agent, captcha_selector)
+            return Acgnx(search_delay_second, user_agent, iframe_finder, iframe_selector, captcha_finder, captcha_selector)
         else:
             message = f"Unknown site: {site_name}"
             raise RuntimeError(message)

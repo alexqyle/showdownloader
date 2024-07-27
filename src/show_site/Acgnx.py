@@ -11,7 +11,15 @@ from DrissionPage import ChromiumOptions
 logger = logging.getLogger(__name__)
 
 class Acgnx(ShowSite):
-    def __init__(self, search_delay_second: int, user_agent: str, captcha_selector: str):
+    def __init__(
+            self, 
+            search_delay_second: int, 
+            user_agent: str, 
+            iframe_finder: str, 
+            iframe_selector: str, 
+            captcha_finder: str, 
+            captcha_selector: str
+        ):
         super().__init__()
         self.search_url = 'https://share.acgnx.se/search.php'
         self.search_delay_second = search_delay_second
@@ -19,6 +27,9 @@ class Acgnx(ShowSite):
             'user-agent': user_agent
         }
         self.user_agent = user_agent
+        self.iframe_finder = iframe_finder
+        self.iframe_selector = iframe_selector
+        self.captcha_finder = captcha_finder
         self.captcha_selector = captcha_selector
 
     @retry((Exception), tries=2, delay=1)
@@ -31,10 +42,9 @@ class Acgnx(ShowSite):
         page.get(self.search_url)
 
         if not self.__is_cf_bypassed(page, 5): 
-            wrapper = page.ele(".cf-turnstile-wrapper")
-            shadow_root = wrapper.shadow_root
-            iframe = shadow_root.ele("tag=iframe", timeout=15)
-            iframe_body = iframe.ele('tag:body', timeout=15).shadow_root
+            shadow_root = page.ele(self.iframe_finder, timeout=15).shadow_root
+            iframe = shadow_root.ele(self.iframe_selector, timeout=15)
+            iframe_body = iframe.ele( self.captcha_finder, timeout=15).shadow_root
             ele = iframe_body.ele(self.captcha_selector, timeout=15)
             ele.click(timeout=10, by_js=None)
             logger.info('clicked cloudflare verify button')
