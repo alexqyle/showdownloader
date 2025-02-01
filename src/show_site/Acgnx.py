@@ -5,8 +5,7 @@ import time
 from pyquery import PyQuery
 from retry import retry
 from show_site.ShowSite import ShowSite
-from DrissionPage import WebPage
-from DrissionPage import ChromiumOptions
+from DrissionPage import Chromium, ChromiumOptions
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +14,12 @@ class Acgnx(ShowSite):
             self, 
             search_delay_second: int, 
             user_agent: str, 
-            iframe_finder: str, 
-            iframe_selector: str, 
-            captcha_finder: str, 
-            captcha_selector: str
+            cf_iframe_finder: str, 
+            cf_iframe_selector: str, 
+            cf_captcha_finder: str, 
+            cf_captcha_selector: str,
+            google_iframe_selector: str, 
+            google_captcha_selector: str
         ):
         super().__init__()
         self.search_url = 'https://share.acgnx.se/search.php'
@@ -27,42 +28,70 @@ class Acgnx(ShowSite):
             'user-agent': user_agent
         }
         self.user_agent = user_agent
-        self.iframe_finder = iframe_finder
-        self.iframe_selector = iframe_selector
-        self.captcha_finder = captcha_finder
-        self.captcha_selector = captcha_selector
+        self.cf_iframe_finder = cf_iframe_finder
+        self.cf_iframe_selector = cf_iframe_selector
+        self.cf_captcha_finder = cf_captcha_finder
+        self.cf_captcha_selector = cf_captcha_selector
+        self.google_iframe_selector = google_iframe_selector
+        self.google_captcha_selector = google_captcha_selector
 
     @retry((Exception), tries=2, delay=1)
     def __get_cf_cookie(self) -> dict[str, str]:
-        co = ChromiumOptions()
-        co.set_argument('--headless')
+        co = ChromiumOptions().new_env()
+        co.headless()
         co.set_argument('--no-sandbox')
         co.set_argument('--user-agent', self.user_agent)
-        page = WebPage(chromium_options=co)
+        browser = Chromium(addr_or_opts=co)
+        page = browser.latest_tab
         page.get(self.search_url)
+        logger.debug(page.html)
 
-        if not self.__is_cf_bypassed(page, 5): 
-            shadow_root = page.ele(self.iframe_finder, timeout=15).shadow_root
-            iframe = shadow_root.ele(self.iframe_selector, timeout=15)
-            iframe_body = iframe.ele( self.captcha_finder, timeout=15).shadow_root
-            ele = iframe_body.ele(self.captcha_selector, timeout=15)
-            ele.click(timeout=10, by_js=None)
+        if self.__is_cf_recaptcha(page, 3):
+            for _ in range(5):
+                shadow_root = page.ele(self.cf_iframe_finder, timeout=5).shadow_root
+                if shadow_root:
+                    break
+                time.sleep(1)
+            iframe = shadow_root.ele(self.cf_iframe_selector, timeout=5)
+            iframe_body = iframe.ele( self.cf_captcha_finder, timeout=5).shadow_root
+            ele = iframe_body.ele(self.cf_captcha_selector, timeout=5)
+            ele.click(timeout=5, by_js=None)
             logger.info('clicked cloudflare verify button')
+
+        if not self.__is_recaptcha_bypassed(page, 5): 
+            iframe = page.get_frame(self.google_iframe_selector)
+            ele = iframe.ele(self.google_captcha_selector, timeout=5)
+            ele.click(timeout=5, by_js=None)
+            logger.info('clicked google verify button')
         
-        if not self.__is_cf_bypassed(page, 10):
-            raise RuntimeError('unable to bypass cloudflare')
+        if not self.__is_recaptcha_bypassed(page, 10):
+            raise RuntimeError('unable to bypass recaptcha')
 
         for cookie in page.cookies():
             if cookie['name'] == 'cf_clearance':
                 cf_clearance_cookie = cookie['value']
                 break
 
-        page.quit()
+        browser.quit()
         return {
             'cf_clearance': cf_clearance_cookie
         }
     
-    def __is_cf_bypassed(self, page: WebPage, retries: int) -> bool:
+    def __is_cf_recaptcha(self, page, retries: int) -> bool:
+        is_cf = False
+        for _ in range(retries):
+            logger.debug(page.html)
+            footer = page.ele('c:#footer-text a', timeout=1)
+            if footer:
+                footer_link = footer.attrs['href']
+                if 'cloudflare' in footer_link.lower():
+                    is_cf = True
+                    break
+            time.sleep(1)
+        return is_cf
+
+    
+    def __is_recaptcha_bypassed(self, page, retries: int) -> bool:
         bypassed = False
         for _ in range(retries):
             logger.debug(page.html)
